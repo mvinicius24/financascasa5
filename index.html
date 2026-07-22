@@ -2,9 +2,10 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="icon3.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CASA 5 - FINANÇAS</title>
+    <!-- Ícone na aba do navegador -->
+    <link rel="icon" type="image/png" href="logo.png">
     <!-- Importando FontAwesome para ícones modernos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="manifest.json">
@@ -27,15 +28,22 @@
             color: var(--text-color);
             margin: 0;
             padding: 15px;
+            height: 100vh;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .container {
             max-width: 600px;
+            height: calc(100vh - 30px);
             margin: 0 auto;
             background: #fff;
             padding: 20px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
         }
 
         header {
@@ -44,7 +52,8 @@
             align-items: center;
             border-bottom: 2px solid var(--border-color);
             padding-bottom: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            flex-shrink: 0;
         }
 
         .header-logo {
@@ -98,11 +107,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: #f9fbf9;
             padding: 12px 15px;
             border-radius: 8px;
             border: 1px solid #e2e8e2;
+            flex-shrink: 0;
         }
 
         .admin-icons {
@@ -143,6 +153,14 @@
         .totals .despesas { color: #a82020; }
         .totals .balanco { color: var(--primary-color); font-weight: 700; font-size: 1.05rem; }
 
+        /* Estrutura para tabela com rolagem apenas no corpo */
+        .table-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -159,6 +177,22 @@
             color: var(--primary-color);
             font-weight: 700;
             background: #f4f8f4;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Ajuste de largura das colunas compactando Vencimento e Estado */
+        th:nth-child(3), td:nth-child(3) {
+            width: 65px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        th:nth-child(4), td:nth-child(4) {
+            width: 55px;
+            text-align: center;
+            white-space: nowrap;
         }
 
         .text-right { text-align: right; }
@@ -208,7 +242,6 @@
             animation: fadeIn 0.2s ease;
         }
 
-        /* Modais de edição com z-index superior para ficarem na frente */
         .modal-edit {
             z-index: 1100;
         }
@@ -409,23 +442,25 @@
         </div>
     </div>
 
-    <!-- TABELA PRINCIPAL DE FINANÇAS (ORDENADA POR DATA DE VENCIMENTO) -->
-    <table>
-        <thead>
-            <tr>
-                <th>CONTA</th>
-                <th class="text-right">VALOR</th>
-                <th class="text-center">VENC.</th>
-                <th class="text-center">PAGO?</th>
-            </tr>
-        </thead>
-        <tbody id="tabela-financas-corpo">
-            <!-- Renderizado dinamicamente via Firebase -->
-        </tbody>
-    </table>
+    <!-- TABELA COM SCROLL INDEPENDENTE -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>CONTA</th>
+                    <th class="text-right">VALOR</th>
+                    <th class="text-center">VENC.</th>
+                    <th class="text-center">PAGO?</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-financas-corpo">
+                <!-- Renderizado dinamicamente via Firebase -->
+            </tbody>
+        </table>
+    </div>
 </div>
 
-<!-- Modal para Editar/Excluir Despesa da Tela Inicial (Classe modal-edit para ficar por cima) -->
+<!-- Modal para Editar/Excluir Despesa da Tela Inicial -->
 <div id="modal-editar-despesa" class="modal modal-edit">
     <div class="modal-content">
         <div class="modal-header-custom">
@@ -457,7 +492,7 @@
     </div>
 </div>
 
-<!-- Modal para Editar/Excluir Receita Cadastrada (Classe modal-edit para ficar por cima) -->
+<!-- Modal para Editar/Excluir Receita Cadastrada -->
 <div id="modal-editar-receita" class="modal modal-edit">
     <div class="modal-content">
         <div class="modal-header-custom">
@@ -772,7 +807,6 @@
             const div = document.createElement('div');
             div.className = 'item-row-card';
             
-            // Ícone interativo para alternar entre adicionada e pendente
             const iconeStatus = item.adicionada 
                 ? '<i class="fa-solid fa-circle-check status-clickable" style="color: #2c5e3b;" title="Já adicionada. Clique para retirar do montante" onclick="toggleReceitaMontante(\'' + item.id + '\', ' + item.valor + ', true)"></i>' 
                 : '<i class="fa-solid fa-circle status-clickable" style="color: #ccc; font-size: 0.7rem;" title="Pendente. Clique para adicionar ao montante" onclick="toggleReceitaMontante(\'' + item.id + '\', ' + item.valor + ', false)"></i>';
@@ -888,11 +922,9 @@
         let novoStatusAdicionada;
 
         if (jaAdicionada) {
-            // Retira do montante
             novoTotal = Math.max(0, totalReceitas - valor);
             novoStatusAdicionada = false;
         } else {
-            // Adiciona ao montante
             novoTotal = totalReceitas + valor;
             novoStatusAdicionada = true;
         }
