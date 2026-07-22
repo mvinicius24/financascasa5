@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="icon3.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CASA 5 - FINANÇAS</title>
+    <!-- Importando FontAwesome para ícones modernos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="manifest" href="manifest.json">
+    <!-- Firebase SDK (Compat v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2c5e3b;
+            --primary-light: #3e7d50;
+            --bg-color: #f4f6f4;
+            --text-color: #333;
+            --border-color: #d1d8d1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .header-logo {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        .header-title {
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .subtitle {
+            font-weight: 600;
+            color: #666;
+            margin-top: 4px;
+            font-size: 0.95rem;
+            text-transform: capitalize;
+        }
+
+        .lock-btn {
+            background: #f0f4f0;
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--primary-color);
+            transition: all 0.2s;
+        }
+
+        .lock-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .summary-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background: #f9fbf9;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8e2;
+        }
+
+        .admin-icons {
+            display: none;
+            gap: 12px;
+        }
+
+        .admin-action-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(44, 94, 59, 0.3);
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .admin-action-btn:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .totals {
+            text-align: right;
+            font-weight: 600;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-left: auto;
+        }
+
+        .totals .receitas { color: #004080; }
+        .totals .despesas { color: #a82020; }
+        .totals .balanco { color: var(--primary-color); font-weight: 700; font-size: 1.05rem; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.92rem;
+        }
+
+        th, td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: var(--primary-color);
+            font-weight: 700;
+            background: #f4f8f4;
+        }
+
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+
+        .conta-clickable {
+            cursor: pointer;
+            color: var(--primary-color);
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .conta-clickable:hover {
+            color: var(--primary-light);
+            text-decoration: underline;
+        }
+
+        .status-clickable {
+            cursor: pointer;
+            font-size: 1.2rem;
+            user-select: none;
+            transition: transform 0.1s;
+        }
+
+        .status-clickable:hover {
+            transform: scale(1.2);
+        }
+
+        .atrasado {
+            color: #a82020;
+            font-weight: bold;
+        }
+
+        /* Estilização Moderna dos Modais */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(3px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Modais de edição com z-index superior para ficarem na frente */
+        .modal-edit {
+            z-index: 1100;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: #fff;
+            padding: 24px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 420px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-header-custom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        .modal-header-custom h3 {
+            margin: 0;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #888;
+            transition: color 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #555;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .form-row input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-row input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .submit-item-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .submit-item-btn:hover {
+            background: var(--primary-light);
+        }
+
+        .delete-item-btn {
+            background: #a82020;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+
+        .delete-item-btn:hover {
+            background: #871515;
+        }
+
+        .item-list-container {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .item-row-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fcfdfc;
+            padding: 10px 12px;
+            border: 1px solid #edf2ed;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .item-row-card span {
+            font-weight: 500;
+        }
+
+        .item-row-card .item-details {
+            color: #666;
+            font-size: 0.85rem;
+        }
+
+        .action-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--primary-color);
+            transition: transform 0.1s;
+            padding: 4px;
+        }
+
+        .action-icon-btn:hover {
+            transform: scale(1.2);
+            color: var(--primary-light);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <img src="logo.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
+        <div class="header-title">
+            <h1>CASA 5 - FINANÇAS</h1>
+            <div class="subtitle" id="mes-corrente-display">Carregando...</div>
+        </div>
+        <button class="lock-btn" id="lock-icon" onclick="handleLockClick()" title="Painel Administrativo">
+            <i class="fa-solid fa-lock"></i>
+        </button>
+    </header>
+
+    <div class="summary-panel">
+        <div class="admin-icons" id="admin-icons">
+            <button class="admin-action-btn" onclick="openModal('modal-despesas')" title="Gerenciar Despesas">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+            </button>
+            <button class="admin-action-btn" onclick="openModal('modal-receitas')" title="Gerenciar Receitas">
+                <i class="fa-solid fa-wallet"></i>
+            </button>
+        </div>
+        <div class="totals">
+            <div class="receitas" id="total-receitas-display">Receitas: R$ 0,00</div>
+            <div class="despesas" id="total-despesas-display">Despesas: R$ 0,00</div>
+            <div class="balanco" id="total-balanco-display">Balanço: R$ 0,00</div>
+        </div>
+    </div>
+
+    <!-- TABELA PRINCIPAL DE FINANÇAS (ORDENADA POR DATA DE VENCIMENTO) -->
+    <table>
+        <thead>
+            <tr>
+                <th>CONTA</th>
+                <th class="text-right">VALOR</th>
+                <th class="text-center">VENC.</th>
+                <th class="text-center">PAGO?</th>
+            </tr>
+        </thead>
+        <tbody id="tabela-financas-corpo">
+            <!-- Renderizado dinamicamente via Firebase -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal para Editar/Excluir Despesa da Tela Inicial (Classe modal-edit para ficar por cima) -->
+<div id="modal-editar-despesa" class="modal modal-edit">
+    <div class="modal-content">
+        <div class="modal-header-custom">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Editar Despesa</h3>
+            <button class="close-btn" onclick="closeModal('modal-editar-despesa')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="hidden" id="edit-id">
+        <div class="form-group">
+            <label id="edit-nome-label" style="font-size: 1rem; color: var(--primary-color); font-weight: bold; margin-bottom: 10px;"></label>
+        </div>
+        <div class="form-group">
+            <label>Novo Valor (R$)</label>
+            <div class="form-row">
+                <input type="number" id="edit-valor" placeholder="0,00" step="0.01">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Novo Dia de Vencimento</label>
+            <div class="form-row">
+                <input type="number" id="edit-dia" placeholder="Dia" min="1" max="31">
+            </div>
+        </div>
+        <button class="submit-item-btn" onclick="salvarEdicaoDespesa()">
+            <i class="fa-solid fa-check"></i> Salvar Alterações
+        </button>
+        <button class="delete-item-btn" onclick="excluirDespesaTelaInicial()">
+            <i class="fa-solid fa-trash-can"></i> Excluir da Tela Inicial
+        </button>
+    </div>
+</div>
+
+<!-- Modal para Editar/Excluir Receita Cadastrada (Classe modal-edit para ficar por cima) -->
+<div id="modal-editar-receita" class="modal modal-edit">
+    <div class="modal-content">
+        <div class="modal-header-custom">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Editar Receita</h3>
+            <button class="close-btn" onclick="closeModal('modal-editar-receita')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="hidden" id="edit-receita-id">
+        <div class="form-group">
+            <label>Nome da Receita</label>
+            <div class="form-row">
+                <input type="text" id="edit-receita-nome" placeholder="Ex: Salário">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Valor (R$)</label>
+            <div class="form-row">
+                <input type="number" id="edit-receita-valor" placeholder="0,00" step="0.01">
+            </div>
+        </div>
+        <button class="submit-item-btn" onclick="salvarEdicaoReceita()">
+            <i class="fa-solid fa-check"></i> Salvar Alterações
+        </button>
+        <button class="delete-item-btn" onclick="excluirReceitaCadastrada()">
+            <i class="fa-solid fa-trash-can"></i> Excluir Receita
+        </button>
+    </div>
+</div>
+
+<!-- Modal de Despesas -->
+<div id="modal-despesas" class="modal">
+    <div class="modal-content">
+        <div class="modal-header-custom">
+            <h3><i class="fa-solid fa-file-invoice-dollar"></i> Gerenciar Despesas</h3>
+            <button class="close-btn" onclick="closeModal('modal-despesas')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nome da Despesa</label>
+            <div class="form-row">
+                <input type="text" id="nova-despesa-nome" placeholder="Ex: Internet">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Valor (R$) e Dia de Vencimento</label>
+            <div class="form-row">
+                <input type="number" id="nova-despesa-valor" placeholder="Valor" step="0.01">
+                <input type="number" id="nova-despesa-dia" placeholder="Dia" min="1" max="31" style="max-width: 90px;">
+            </div>
+        </div>
+        <button class="submit-item-btn" onclick="adicionarDespesa()">
+            <i class="fa-solid fa-plus"></i> Adicionar Despesa
+        </button>
+        
+        <div class="item-list-container" id="lista-despesas-cadastradas">
+            <!-- Itens de modelo pré-cadastrados ou salvos -->
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Receitas -->
+<div id="modal-receitas" class="modal">
+    <div class="modal-content">
+        <div class="modal-header-custom">
+            <h3><i class="fa-solid fa-wallet"></i> Gerenciar Receitas</h3>
+            <button class="close-btn" onclick="closeModal('modal-receitas')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Nome da Receita</label>
+            <div class="form-row">
+                <input type="text" id="nova-receita-nome" placeholder="Ex: Salário Extra">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Valor (R$)</label>
+            <div class="form-row">
+                <input type="number" id="nova-receita-valor" placeholder="0,00" step="0.01">
+            </div>
+        </div>
+        <button class="submit-item-btn" onclick="adicionarReceita()">
+            <i class="fa-solid fa-plus"></i> Adicionar Receita
+        </button>
+
+        <div class="item-list-container" id="lista-receitas-cadastradas">
+            <!-- Receitas listadas aqui -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // CONFIGURAÇÃO DO FIREBASE
+    // ==========================================
+    const firebaseConfig = {
+        apiKey: "AIzaSyBT9nVJHcYumgHmwxtADKWT6Jtb4sbn-Gc",
+        authDomain: "financascasa5.firebaseapp.com",
+        databaseURL: "https://financascasa5-default-rtdb.firebaseio.com",
+        projectId: "financascasa5",
+        storageBucket: "financascasa5.firebasestorage.app",
+        messagingSenderId: "7241364762",
+        appId: "1:7241364762:web:13adfc6245a2e27f95a8a3"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const ADMIN_PASSWORD = "1234"; 
+    let isAdminUnlocked = false;
+
+    let totalReceitas = 0;
+    let despesasTelaInicial = [];
+    let despesasCadastradas = [];
+    let receitasCadastradas = [];
+
+    window.onload = function() {
+        definirMesCorrente();
+        ouvirDadosFirebase();
+    };
+
+    function definirMesCorrente() {
+        const agora = new Date();
+        const opcoes = { month: 'long', year: 'numeric' };
+        let mesAnoStr = agora.toLocaleDateString('pt-BR', opcoes);
+        mesAnoStr = mesAnoStr.replace(' de ', '/');
+        document.getElementById('mes-corrente-display').textContent = mesAnoStr;
+    }
+
+    // ==========================================
+    // SINCRONIZAÇÃO EM TEMPO REAL (FIREBASE)
+    // ==========================================
+    function ouvirDadosFirebase() {
+        // Escutar Despesas da Tela Inicial
+        db.ref('financas/despesas_tela_inicial').on('value', (snapshot) => {
+            const data = snapshot.val();
+            despesasTelaInicial = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    despesasTelaInicial.push({ id: key, ...data[key] });
+                });
+            }
+            renderizarTabela();
+        });
+
+        // Escutar Total de Receitas
+        db.ref('financas/total_receitas').on('value', (snapshot) => {
+            totalReceitas = snapshot.val() || 0;
+            atualizarTotaisTela();
+        });
+
+        // Escutar Modelos de Despesas Cadastradas
+        db.ref('financas/despesas_cadastradas').on('value', (snapshot) => {
+            const data = snapshot.val();
+            despesasCadastradas = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    despesasCadastradas.push({ id: key, ...data[key] });
+                });
+            }
+            renderizarListaDespesasCadastradas();
+        });
+
+        // Escutar Modelos de Receitas Cadastradas
+        db.ref('financas/receitas_cadastradas').on('value', (snapshot) => {
+            const data = snapshot.val();
+            receitasCadastradas = [];
+            if (data) {
+                Object.keys(data).forEach(key => {
+                    receitasCadastradas.push({ id: key, ...data[key] });
+                });
+            }
+            renderizarListaReceitasCadastradas();
+        });
+    }
+
+    // ==========================================
+    // RENDERIZAÇÃO E INTERFACE
+    // ==========================================
+    function calcularTotalDespesas() {
+        return despesasTelaInicial.reduce((acc, item) => acc + item.valor, 0);
+    }
+
+    function atualizarTotaisTela() {
+        let totalDespesas = calcularTotalDespesas();
+        let balanco = totalReceitas - totalDespesas;
+        
+        document.getElementById('total-receitas-display').textContent = `Receitas: ${formatarMoeda(totalReceitas)}`;
+        document.getElementById('total-despesas-display').textContent = `Despesas: ${formatarMoeda(totalDespesas)}`;
+        
+        const balancoEl = document.getElementById('total-balanco-display');
+        balancoEl.textContent = `Balanço: ${formatarMoeda(balanco)}`;
+        if (balanco < 0) {
+            balancoEl.style.color = '#a82020';
+        } else {
+            balancoEl.style.color = 'var(--primary-color)';
+        }
+    }
+
+    function formatarMoeda(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function renderizarTabela() {
+        despesasTelaInicial.sort((a, b) => parseInt(a.dia) - parseInt(b.dia));
+
+        const tbody = document.getElementById('tabela-financas-corpo');
+        tbody.innerHTML = '';
+
+        const agora = new Date();
+        const anoAtual = agora.getFullYear();
+        const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+
+        despesasTelaInicial.forEach((item) => {
+            const diaFormatado = item.dia.padStart(2, '0');
+            const dataVencStr = `${anoAtual}-${mesAtual}-${diaFormatado}`;
+            const dataVenc = new Date(dataVencStr + 'T00:00:00');
+
+            let statusExibicao = item.status || "🔄";
+            let classeAtrasado = '';
+
+            if (hoje > dataVenc && statusExibicao !== '✅') {
+                statusExibicao = '❌';
+                classeAtrasado = 'atrasado';
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><span class="conta-clickable" onclick="abrirEdicaoDespesa('${item.id}')">${item.nome}</span></td>
+                <td class="text-right">R$ ${item.valor.toFixed(2).replace('.', ',')}</td>
+                <td class="text-center">${diaFormatado}/${mesAtual}</td>
+                <td class="text-center status-clickable ${classeAtrasado}" onclick="toggleStatus('${item.id}', '${item.status}')">${statusExibicao}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        atualizarTotaisTela();
+    }
+
+    function toggleStatus(id, statusAtual) {
+        const novoStatus = (statusAtual === '✅') ? '🔄' : '✅';
+        db.ref(`financas/despesas_tela_inicial/${id}`).update({ status: novoStatus });
+    }
+
+    function abrirEdicaoDespesa(id) {
+        const item = despesasTelaInicial.find(d => d.id === id);
+        if (!item) return;
+
+        document.getElementById('edit-id').value = item.id;
+        document.getElementById('edit-nome-label').textContent = `Conta: ${item.nome}`;
+        document.getElementById('edit-valor').value = item.valor;
+        document.getElementById('edit-dia').value = parseInt(item.dia, 10);
+        openModal('modal-editar-despesa');
+    }
+
+    function salvarEdicaoDespesa() {
+        const id = document.getElementById('edit-id').value;
+        const novoValor = parseFloat(document.getElementById('edit-valor').value);
+        const novoDia = document.getElementById('edit-dia').value.trim();
+
+        if (isNaN(novoValor) || !novoDia) {
+            alert('Preencha os campos corretamente.');
+            return;
+        }
+
+        db.ref(`financas/despesas_tela_inicial/${id}`).update({
+            valor: novoValor,
+            dia: novoDia.padStart(2, '0')
+        }, () => {
+            closeModal('modal-editar-despesa');
+            alert('Despesa atualizada com sucesso!');
+        });
+    }
+
+    function excluirDespesaTelaInicial() {
+        const id = document.getElementById('edit-id').value;
+        const item = despesasTelaInicial.find(d => d.id === id);
+
+        if (confirm(`Deseja realmente excluir a despesa "${item ? item.nome : ''}" da tela inicial?`)) {
+            db.ref(`financas/despesas_tela_inicial/${id}`).remove(() => {
+                closeModal('modal-editar-despesa');
+                alert('Despesa removida da tela inicial!');
+            });
+        }
+    }
+
+    // ==========================================
+    // GERENCIAMENTO DE CADASTROS (FIREBASE)
+    // ==========================================
+    function renderizarListaDespesasCadastradas() {
+        const containerLista = document.getElementById('lista-despesas-cadastradas');
+        containerLista.innerHTML = '';
+
+        despesasCadastradas.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'item-row-card';
+            div.innerHTML = `
+                <span>${item.nome}</span>
+                <div>
+                    <span class="item-details" style="margin-right: 8px;">R$ ${item.valor.toFixed(2).replace('.', ',')} (Dia ${item.dia})</span>
+                    <button class="action-icon-btn" title="Adicionar à Tela Inicial" onclick="enviarDespesaParaTelaInicial('${item.nome}', ${item.valor}, '${item.dia}')"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>
+                </div>
+            `;
+            containerLista.appendChild(div);
+        });
+    }
+
+    function renderizarListaReceitasCadastradas() {
+        const containerLista = document.getElementById('lista-receitas-cadastradas');
+        containerLista.innerHTML = '';
+
+        receitasCadastradas.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'item-row-card';
+            
+            // Ícone interativo para alternar entre adicionada e pendente
+            const iconeStatus = item.adicionada 
+                ? '<i class="fa-solid fa-circle-check status-clickable" style="color: #2c5e3b;" title="Já adicionada. Clique para retirar do montante" onclick="toggleReceitaMontante(\'' + item.id + '\', ' + item.valor + ', true)"></i>' 
+                : '<i class="fa-solid fa-circle status-clickable" style="color: #ccc; font-size: 0.7rem;" title="Pendente. Clique para adicionar ao montante" onclick="toggleReceitaMontante(\'' + item.id + '\', ' + item.valor + ', false)"></i>';
+
+            div.innerHTML = `
+                <span class="conta-clickable" onclick="abrirEdicaoReceita('${item.id}')">${item.nome}</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: flex; align-items: center;">${iconeStatus}</span>
+                    <span class="item-details">R$ ${item.valor.toFixed(2).replace('.', ',')}</span>
+                    <button class="action-icon-btn" title="${item.adicionada ? 'Retirar do Montante' : 'Adicionar ao Montante'}" onclick="toggleReceitaMontante('${item.id}', ${item.valor}, ${item.adicionada || false})"><i class="fa-solid ${item.adicionada ? 'fa-minus-circle' : 'fa-plus-circle'}"></i></button>
+                </div>
+            `;
+            containerLista.appendChild(div);
+        });
+    }
+
+    function adicionarDespesa() {
+        const nome = document.getElementById('nova-despesa-nome').value.trim().toUpperCase();
+        const valor = parseFloat(document.getElementById('nova-despesa-valor').value);
+        const dia = document.getElementById('nova-despesa-dia').value.trim();
+
+        if (!nome || isNaN(valor) || !dia) {
+            alert('Por favor, preencha todos os campos da despesa corretamente.');
+            return;
+        }
+
+        db.ref('financas/despesas_cadastradas').push({
+            nome: nome,
+            valor: valor,
+            dia: dia.padStart(2, '0')
+        }, () => {
+            document.getElementById('nova-despesa-nome').value = '';
+            document.getElementById('nova-despesa-valor').value = '';
+            document.getElementById('nova-despesa-dia').value = '';
+            alert('Despesa cadastrada com sucesso!');
+        });
+    }
+
+    function enviarDespesaParaTelaInicial(nome, valor, diaFormatado) {
+        db.ref('financas/despesas_tela_inicial').push({
+            nome: nome,
+            valor: valor,
+            dia: diaFormatado,
+            status: "🔄"
+        }, () => {
+            alert('Despesa enviada para a tela inicial!');
+        });
+    }
+
+    function adicionarReceita() {
+        const nome = document.getElementById('nova-receita-nome').value.trim().toUpperCase();
+        const valor = parseFloat(document.getElementById('nova-receita-valor').value);
+
+        if (!nome || isNaN(valor)) {
+            alert('Por favor, preencha todos os campos da receita corretamente.');
+            return;
+        }
+
+        db.ref('financas/receitas_cadastradas').push({
+            nome: nome,
+            valor: valor,
+            adicionada: false
+        }, () => {
+            document.getElementById('nova-receita-nome').value = '';
+            document.getElementById('nova-receita-valor').value = '';
+            alert('Receita cadastrada com sucesso!');
+        });
+    }
+
+    function abrirEdicaoReceita(id) {
+        const item = receitasCadastradas.find(r => r.id === id);
+        if (!item) return;
+
+        document.getElementById('edit-receita-id').value = item.id;
+        document.getElementById('edit-receita-nome').value = item.nome;
+        document.getElementById('edit-receita-valor').value = item.valor;
+        openModal('modal-editar-receita');
+    }
+
+    function salvarEdicaoReceita() {
+        const id = document.getElementById('edit-receita-id').value;
+        const novoNome = document.getElementById('edit-receita-nome').value.trim().toUpperCase();
+        const novoValor = parseFloat(document.getElementById('edit-receita-valor').value);
+
+        if (!novoNome || isNaN(novoValor)) {
+            alert('Preencha os campos corretamente.');
+            return;
+        }
+
+        db.ref(`financas/receitas_cadastradas/${id}`).update({
+            nome: novoNome,
+            valor: novoValor
+        }, () => {
+            closeModal('modal-editar-receita');
+            alert('Receita atualizada com sucesso!');
+        });
+    }
+
+    function excluirReceitaCadastrada() {
+        const id = document.getElementById('edit-receita-id').value;
+        const item = receitasCadastradas.find(r => r.id === id);
+
+        if (confirm(`Deseja realmente excluir a receita "${item ? item.nome : ''}"?`)) {
+            db.ref(`financas/receitas_cadastradas/${id}`).remove(() => {
+                closeModal('modal-editar-receita');
+                alert('Receita removida!');
+            });
+        }
+    }
+
+    function toggleReceitaMontante(id, valor, jaAdicionada) {
+        let novoTotal;
+        let novoStatusAdicionada;
+
+        if (jaAdicionada) {
+            // Retira do montante
+            novoTotal = Math.max(0, totalReceitas - valor);
+            novoStatusAdicionada = false;
+        } else {
+            // Adiciona ao montante
+            novoTotal = totalReceitas + valor;
+            novoStatusAdicionada = true;
+        }
+
+        db.ref('financas').update({ total_receitas: novoTotal }, () => {
+            db.ref(`financas/receitas_cadastradas/${id}`).update({ adicionada: novoStatusAdicionada }, () => {
+                alert(novoStatusAdicionada ? 'Valor adicionado ao montante de receitas!' : 'Valor retirado do montante de receitas!');
+            });
+        });
+    }
+
+    // ==========================================
+    // CONTROLES DE ADMIN E MODAIS
+    // ==========================================
+    function handleLockClick() {
+        const lockIconBtn = document.getElementById('lock-icon');
+        if (isAdminUnlocked) {
+            isAdminUnlocked = false;
+            document.getElementById('admin-icons').style.display = 'none';
+            lockIconBtn.innerHTML = '<i class="fa-solid fa-lock"></i>';
+            return;
+        }
+
+        const senha = prompt("Digite a senha do Administrador:");
+        if (senha === ADMIN_PASSWORD) {
+            isAdminUnlocked = true;
+            document.getElementById('admin-icons').style.display = 'flex';
+            lockIconBtn.innerHTML = '<i class="fa-solid fa-lock-open"></i>';
+        } else if (senha !== null) {
+            alert('Senha incorreta!');
+        }
+    }
+
+    function openModal(modalId) {
+        document.getElementById(modalId).style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    }
+</script>
+
+</body>
+</html>
