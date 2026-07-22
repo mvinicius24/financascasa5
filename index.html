@@ -184,15 +184,26 @@
             z-index: 10;
         }
 
+          /* Largura para a coluna CONTA (1ª coluna) */
+        th:nth-child(1), td:nth-child(1) {
+            width: 40%; /* Ou um valor em pixels, ex: 200px */
+        }
+
+        /* Largura para a coluna VALOR (2ª coluna) */
+        th:nth-child(2), td:nth-child(2) {
+            width: 35%; /* Ou um valor em pixels, ex: 100px */
+            text-align: right;
+        }
+
         /* Largura ajustada e compacta para VENC. e PAGO? */
         th:nth-child(3), td:nth-child(3) {
-            width: 58px;
+            width: 15%;
             text-align: center;
             white-space: nowrap;
         }
 
         th:nth-child(4), td:nth-child(4) {
-            width: 48px;
+            width: 10%;
             text-align: center;
             white-space: nowrap;
         }
