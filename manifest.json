@@ -1,7 +1,8 @@
 {
   "name": "Casa 5 Finanças",
   "short_name": "Finanças Casa 5",
-  "start_url": "/",
+  "start_url": "/financascasa5/",
+  "scope": "/nome-do-seu-repositorio/",
   "display": "standalone",
   "background_color": "#f4f6f4",
   "theme_color": "#2c5e3b",
