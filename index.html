@@ -12,6 +12,8 @@
     <!-- Firebase SDK (Compat v9) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <!-- Biblioteca html2canvas para tirar o print da tela -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         :root {
@@ -70,39 +72,12 @@
             flex-grow: 1;
         }
 
-        h1 {
-            color: var(--primary-color);
-            font-size: 1.35rem;
-            margin: 0;
-            letter-spacing: 0.5px;
-        }
-
-        .subtitle-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 4px;
-        }
-
         .subtitle {
             font-weight: 600;
             color: #666;
+            margin-top: 4px;
             font-size: 0.9rem;
             text-transform: capitalize;
-        }
-
-        .nav-mes-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--primary-color);
-            font-size: 0.9rem;
-            transition: transform 0.1s;
-        }
-
-        .nav-mes-btn:hover {
-            transform: scale(1.2);
         }
 
         .lock-btn {
@@ -139,7 +114,8 @@
 
         .admin-icons {
             display: none;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .admin-action-btn {
@@ -175,7 +151,6 @@
         .totals .despesas { color: #a82020; }
         .totals .balanco { color: var(--primary-color); font-weight: 700; font-size: 1rem; }
 
-        /* Estrutura para tabela com rolagem apenas no corpo */
         .table-container {
             flex-grow: 1;
             overflow-y: auto;
@@ -240,7 +215,6 @@
             font-weight: bold;
         }
 
-        /* Estilização Moderna dos Modais */
         .modal {
             display: none;
             position: fixed;
@@ -320,17 +294,18 @@
             margin-bottom: 15px;
         }
 
-        .form-row input {
+        .form-row input, .form-row select {
             width: 100%;
             padding: 10px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-size: 0.95rem;
             outline: none;
+            background: #fff;
             transition: border-color 0.2s;
         }
 
-        .form-row input:focus { border-color: var(--primary-color); }
+        .form-row input:focus, .form-row select:focus { border-color: var(--primary-color); }
 
         .submit-item-btn {
             background: var(--primary-color);
@@ -410,15 +385,11 @@
 </head>
 <body>
 
-<div class="container">
+<div class="container" id="app-container">
     <header>
         <img src="logo2.png" alt="Logo" class="header-logo" onerror="this.style.display='none'">
         <div class="header-title">
-            <div class="subtitle-container">
-                <button class="nav-mes-btn" onclick="mudarMes(-1)" title="Mês Anterior"><i class="fa-solid fa-chevron-left"></i></button>
-                <div class="subtitle" id="mes-corrente-display">Carregando...</div>
-                <button class="nav-mes-btn" onclick="mudarMes(1)" title="Próximo Mês"><i class="fa-solid fa-chevron-right"></i></button>
-            </div>
+            <div class="subtitle" id="mes-corrente-display">Carregando...</div>
         </div>
         <button class="lock-btn" id="lock-icon" onclick="handleLockClick()" title="Painel Administrativo">
             <i class="fa-solid fa-lock"></i>
@@ -427,11 +398,17 @@
 
     <div class="summary-panel">
         <div class="admin-icons" id="admin-icons">
-            <button class="admin-action-btn" onclick="openModal('modal-despesas')" title="Gerenciar Despesas">
+            <button class="admin-action-btn" onclick="abrirModalGerenciarDespesas()" title="Gerenciar Despesas">
                 <i class="fa-solid fa-file-invoice-dollar"></i>
             </button>
-            <button class="admin-action-btn" onclick="openModal('modal-receitas')" title="Gerenciar Receitas">
+            <button class="admin-action-btn" onclick="abrirModalGerenciarReceitas()" title="Gerenciar Receitas">
                 <i class="fa-solid fa-wallet"></i>
+            </button>
+            <button class="admin-action-btn" onclick="abrirModalFiltroMes()" title="Filtrar Mês/Ano">
+                <i class="fa-solid fa-calendar-days"></i>
+            </button>
+            <button class="admin-action-btn" onclick="tirarPrintTela()" title="Tirar Print da Tela">
+                <i class="fa-solid fa-camera"></i>
             </button>
         </div>
         <div class="totals">
@@ -456,6 +433,44 @@
                 <!-- Renderizado dinamicamente via Firebase -->
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Modal para Filtrar Mês e Ano -->
+<div id="modal-filtro-mes" class="modal">
+    <div class="modal-content">
+        <div class="modal-header-custom">
+            <h3><i class="fa-solid fa-calendar-days"></i> Filtrar Mês / Ano</h3>
+            <button class="close-btn" onclick="closeModal('modal-filtro-mes')"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="form-group">
+            <label>Selecione o Mês</label>
+            <div class="form-row">
+                <select id="select-mes">
+                    <option value="0">Janeiro</option>
+                    <option value="1">Fevereiro</option>
+                    <option value="2">Março</option>
+                    <option value="3">Abril</option>
+                    <option value="4">Maio</option>
+                    <option value="5">Junho</option>
+                    <option value="6">Julho</option>
+                    <option value="7">Agosto</option>
+                    <option value="8">Setembro</option>
+                    <option value="9">Outubro</option>
+                    <option value="10">Novembro</option>
+                    <option value="11">Dezembro</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Ano</label>
+            <div class="form-row">
+                <input type="number" id="select-ano" placeholder="Ex: 2026">
+            </div>
+        </div>
+        <button class="submit-item-btn" onclick="aplicarFiltroMes()">
+            <i class="fa-solid fa-check"></i> Aplicar Filtro
+        </button>
     </div>
 </div>
 
@@ -599,8 +614,12 @@
     const ADMIN_PASSWORD = "1234"; 
     let isAdminUnlocked = false;
 
-    // Data de referência atual (Controla o mês visualizado)
-    let dataAtualVisualizacao = new Date();
+    // Data de referência atual do sistema (Mês Corrente Real)
+    const dataCorrenteReal = new Date();
+    
+    // Data de visualização (Pode ser alterada livremente pelo filtro)
+    let dataAtualVisualizacao = new Date(dataCorrenteReal.getFullYear(), dataCorrenteReal.getMonth(), 1);
+
     let totalReceitas = 0;
     let despesasTelaInicial = [];
     let despesasCadastradas = [];
@@ -616,18 +635,57 @@
         const opcoes = { month: 'long', year: 'numeric' };
         let mesAnoStr = dataAtualVisualizacao.toLocaleDateString('pt-BR', opcoes);
         mesAnoStr = mesAnoStr.replace(' de ', '/');
-        document.getElementById('mes-corrente-display').textContent = mesAnoStr;
+        
+        // Se estiver visualizando um mês diferente do corrente, avisa no subtítulo
+        const ehMesCorrente = (dataAtualVisualizacao.getMonth() === dataCorrenteReal.getMonth() && 
+                                dataAtualVisualizacao.getFullYear() === dataCorrenteReal.getFullYear());
+        
+        document.getElementById('mes-corrente-display').textContent = ehMesCorrente ? mesAnoStr : `${mesAnoStr} (Visualização)`;
     }
 
-    function mudarMes(direcao) {
-        dataAtualVisualizacao.setMonth(dataAtualVisualizacao.getMonth() + direcao);
+    function abrirModalFiltroMes() {
+        document.getElementById('select-mes').value = dataAtualVisualizacao.getMonth();
+        document.getElementById('select-ano').value = dataAtualVisualizacao.getFullYear();
+        openModal('modal-filtro-mes');
+    }
+
+    function aplicarFiltroMes() {
+        const mesSelecionado = parseInt(document.getElementById('select-mes').value, 10);
+        const anoSelecionado = parseInt(document.getElementById('select-ano').value, 10);
+
+        if (isNaN(anoSelecionado) || anoSelecionado < 2000) {
+            alert('Digite um ano válido.');
+            return;
+        }
+
+        dataAtualVisualizacao = new Date(anoSelecionado, mesSelecionado, 1);
         atualizarCabecalhoMes();
         ouvirDadosFirebase();
+        closeModal('modal-filtro-mes');
     }
 
-    function obterCaminhoMes() {
+    function tirarPrintTela() {
+        const elemento = document.getElementById('app-container');
+        html2canvas(elemento, { scale: 2 }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `financas_${dataAtualVisualizacao.getFullYear()}_${String(dataAtualVisualizacao.getMonth() + 1).padStart(2, '0')}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }).catch(err => {
+            alert('Erro ao gerar print da tela.');
+            console.error(err);
+        });
+    }
+
+    function obterCaminhoVisualizacao() {
         const ano = dataAtualVisualizacao.getFullYear();
         const mes = String(dataAtualVisualizacao.getMonth() + 1).padStart(2, '0');
+        return `financas/meses/${ano}_${mes}`;
+    }
+
+    function obterCaminhoCorrente() {
+        const ano = dataCorrenteReal.getFullYear();
+        const mes = String(dataCorrenteReal.getMonth() + 1).padStart(2, '0');
         return `financas/meses/${ano}_${mes}`;
     }
 
@@ -635,18 +693,17 @@
     // SINCRONIZAÇÃO EM TEMPO REAL (FIREBASE)
     // ==========================================
     function ouvirDadosFirebase() {
-        const caminhoMes = obterCaminhoMes();
+        const caminhoVisualizacao = obterCaminhoVisualizacao();
 
-        // Remover listeners anteriores para evitar conflitos de cache entre meses
         db.ref('financas/despesas_cadastradas').off();
         db.ref('financas/receitas_cadastradas').off();
         if (listenerAtual) {
             db.ref(listenerAtual).off();
         }
-        listenerAtual = caminhoMes;
+        listenerAtual = caminhoVisualizacao;
 
-        // Escutar Despesas do Mês Atual na Tela Inicial
-        db.ref(`${caminhoMes}/despesas_tela_inicial`).on('value', (snapshot) => {
+        // Escutar Despesas do Mês em Visualização
+        db.ref(`${caminhoVisualizacao}/despesas_tela_inicial`).on('value', (snapshot) => {
             const data = snapshot.val();
             despesasTelaInicial = [];
             if (data) {
@@ -657,8 +714,8 @@
             renderizarTabela();
         });
 
-        // Escutar Total de Receitas do Mês Atual
-        db.ref(`${caminhoMes}/total_receitas`).on('value', (snapshot) => {
+        // Escutar Total de Receitas do Mês em Visualização
+        db.ref(`${caminhoVisualizacao}/total_receitas`).on('value', (snapshot) => {
             totalReceitas = snapshot.val() || 0;
             atualizarTotaisTela();
         });
@@ -754,9 +811,9 @@
     }
 
     function toggleStatus(id, statusAtual) {
-        const caminhoMes = obterCaminhoMes();
+        const caminhoVisualizacao = obterCaminhoVisualizacao();
         const novoStatus = (statusAtual === '✅') ? '🔄' : '✅';
-        db.ref(`${caminhoMes}/despesas_tela_inicial/${id}`).update({ status: novoStatus });
+        db.ref(`${caminhoVisualizacao}/despesas_tela_inicial/${id}`).update({ status: novoStatus });
     }
 
     function abrirEdicaoDespesa(id) {
@@ -771,7 +828,7 @@
     }
 
     function salvarEdicaoDespesa() {
-        const caminhoMes = obterCaminhoMes();
+        const caminhoVisualizacao = obterCaminhoVisualizacao();
         const id = document.getElementById('edit-id').value;
         const novoValor = parseFloat(document.getElementById('edit-valor').value);
         const novoDia = document.getElementById('edit-dia').value.trim();
@@ -781,7 +838,7 @@
             return;
         }
 
-        db.ref(`${caminhoMes}/despesas_tela_inicial/${id}`).update({
+        db.ref(`${caminhoVisualizacao}/despesas_tela_inicial/${id}`).update({
             valor: novoValor,
             dia: novoDia.padStart(2, '0')
         }, () => {
@@ -791,12 +848,12 @@
     }
 
     function excluirDespesaTelaInicial() {
-        const caminhoMes = obterCaminhoMes();
+        const caminhoVisualizacao = obterCaminhoVisualizacao();
         const id = document.getElementById('edit-id').value;
         const item = despesasTelaInicial.find(d => d.id === id);
 
         if (confirm(`Deseja realmente excluir a despesa "${item ? item.nome : ''}" deste mês?`)) {
-            db.ref(`${caminhoMes}/despesas_tela_inicial/${id}`).remove(() => {
+            db.ref(`${caminhoVisualizacao}/despesas_tela_inicial/${id}`).remove(() => {
                 closeModal('modal-editar-despesa');
                 alert('Despesa removida do mês!');
             });
@@ -804,8 +861,16 @@
     }
 
     // ==========================================
-    // GERENCIAMENTO DE CADASTROS (FIREBASE)
+    // GERENCIAMENTO DE CADASTROS (APLICADOS AO MÊS CORRENTE)
     // ==========================================
+    function abrirModalGerenciarDespesas() {
+        openModal('modal-despesas');
+    }
+
+    function abrirModalGerenciarReceitas() {
+        openModal('modal-receitas');
+    }
+
     function renderizarListaDespesasCadastradas() {
         const containerLista = document.getElementById('lista-despesas-cadastradas');
         containerLista.innerHTML = '';
@@ -817,7 +882,7 @@
                 <span>${item.nome}</span>
                 <div>
                     <span class="item-details" style="margin-right: 8px;">R$ ${item.valor.toFixed(2).replace('.', ',')} (Dia ${item.dia})</span>
-                    <button class="action-icon-btn" title="Adicionar à Tela Inicial deste Mês" onclick="enviarDespesaParaTelaInicial('${item.nome}', ${item.valor}, '${item.dia}')"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>
+                    <button class="action-icon-btn" title="Adicionar à Tela Inicial do Mês Corrente" onclick="enviarDespesaParaTelaCorrente('${item.nome}', ${item.valor}, '${item.dia}')"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>
                 </div>
             `;
             containerLista.appendChild(div);
@@ -828,21 +893,23 @@
         const containerLista = document.getElementById('lista-receitas-cadastradas');
         containerLista.innerHTML = '';
 
+        const caminhoCorrente = obterCaminhoCorrente();
+
         receitasCadastradas.forEach(item => {
             const div = document.createElement('div');
             div.className = 'item-row-card';
             
-            const adicionadaNesteMes = item.meses_adicionados && item.meses_adicionados[obterCaminhoMes()];
-            const iconeStatus = adicionadaNesteMes 
-                ? '<i class="fa-solid fa-circle-check status-clickable" style="color: #2c5e3b;" title="Já adicionada neste mês. Clique para retirar" onclick="toggleReceitaMontante(\'' + item.id + '\', ' + item.valor + ', true)"></i>' 
-                : '<i class="fa-solid fa-circle status-clickable" style="color: #ccc; font-size: 0.7rem;" title="Pendente. Clique para adicionar ao mês" onclick="toggleReceitaMontante(\'' + item.id + '\', ' + item.valor + ', false)"></i>';
+            const adicionadaNoCorrente = item.meses_adicionados && item.meses_adicionados[caminhoCorrente];
+            const iconeStatus = adicionadaNoCorrente 
+                ? '<i class="fa-solid fa-circle-check status-clickable" style="color: #2c5e3b;" title="Já adicionada no mês corrente. Clique para retirar" onclick="toggleReceitaMontanteCorrente(\'' + item.id + '\', ' + item.valor + ', true)"></i>' 
+                : '<i class="fa-solid fa-circle status-clickable" style="color: #ccc; font-size: 0.7rem;" title="Pendente. Clique para adicionar ao mês corrente" onclick="toggleReceitaMontanteCorrente(\'' + item.id + '\', ' + item.valor + ', false)"></i>';
 
             div.innerHTML = `
                 <span class="conta-clickable" onclick="abrirEdicaoReceita('${item.id}')">${item.nome}</span>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="display: flex; align-items: center;">${iconeStatus}</span>
                     <span class="item-details">R$ ${item.valor.toFixed(2).replace('.', ',')}</span>
-                    <button class="action-icon-btn" title="${adicionadaNesteMes ? 'Retirar deste Mês' : 'Adicionar a este Mês'}" onclick="toggleReceitaMontante('${item.id}', ${item.valor}, ${!!adicionadaNesteMes})"><i class="fa-solid ${adicionadaNesteMes ? 'fa-minus-circle' : 'fa-plus-circle'}"></i></button>
+                    <button class="action-icon-btn" title="${adicionadaNoCorrente ? 'Retirar do Mês Corrente' : 'Adicionar ao Mês Corrente'}" onclick="toggleReceitaMontanteCorrente('${item.id}', ${item.valor}, ${!!adicionadaNoCorrente})"><i class="fa-solid ${adicionadaNoCorrente ? 'fa-minus-circle' : 'fa-plus-circle'}"></i></button>
                 </div>
             `;
             containerLista.appendChild(div);
@@ -871,15 +938,15 @@
         });
     }
 
-    function enviarDespesaParaTelaInicial(nome, valor, diaFormatado) {
-        const caminhoMes = obterCaminhoMes();
-        db.ref(`${caminhoMes}/despesas_tela_inicial`).push({
+    function enviarDespesaParaTelaCorrente(nome, valor, diaFormatado) {
+        const caminhoCorrente = obterCaminhoCorrente();
+        db.ref(`${caminhoCorrente}/despesas_tela_inicial`).push({
             nome: nome,
             valor: valor,
             dia: diaFormatado,
             status: "🔄"
         }, () => {
-            alert('Despesa enviada para a tela inicial deste mês!');
+            alert('Despesa enviada para a tela inicial do mês corrente!');
         });
     }
 
@@ -943,25 +1010,30 @@
         }
     }
 
-    function toggleReceitaMontante(id, valor, jaAdicionadaNesteMes) {
-        const caminhoMes = obterCaminhoMes();
-        let novoTotal;
+    function toggleReceitaMontanteCorrente(id, valor, jaAdicionadaNoCorrente) {
+        const caminhoCorrente = obterCaminhoCorrente();
+        
+        // Pega o total de receitas atual do mês corrente diretamente no banco para garantir segurança
+        db.ref(`${caminhoCorrente}/total_receitas`).once('value', (snapshot) => {
+            let totalCorrenteAtual = snapshot.val() || 0;
+            let novoTotal;
 
-        if (jaAdicionadaNesteMes) {
-            novoTotal = Math.max(0, totalReceitas - valor);
-            db.ref(`${caminhoMes}`).update({ total_receitas: novoTotal }, () => {
-                db.ref(`financas/receitas_cadastradas/${id}/meses_adicionados/${caminhoMes}`).remove(() => {
-                    alert('Valor retirado do montante deste mês!');
+            if (jaAdicionadaNoCorrente) {
+                novoTotal = Math.max(0, totalCorrenteAtual - valor);
+                db.ref(`${caminhoCorrente}`).update({ total_receitas: novoTotal }, () => {
+                    db.ref(`financas/receitas_cadastradas/${id}/meses_adicionados/${caminhoCorrente}`).remove(() => {
+                        alert('Valor retirado do montante do mês corrente!');
+                    });
                 });
-            });
-        } else {
-            novoTotal = totalReceitas + valor;
-            db.ref(`${caminhoMes}`).update({ total_receitas: novoTotal }, () => {
-                db.ref(`financas/receitas_cadastradas/${id}/meses_adicionados`).update({ [caminhoMes]: true }, () => {
-                    alert('Valor adicionado ao montante deste mês!');
+            } else {
+                novoTotal = totalCorrenteAtual + valor;
+                db.ref(`${caminhoCorrente}`).update({ total_receitas: novoTotal }, () => {
+                    db.ref(`financas/receitas_cadastradas/${id}/meses_adicionados`).update({ [caminhoCorrente]: true }, () => {
+                        alert('Valor adicionado ao montante do mês corrente!');
+                    });
                 });
-            });
-        }
+            }
+        });
     }
 
     // ==========================================
