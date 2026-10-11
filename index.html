@@ -381,6 +381,56 @@
             transform: scale(1.2);
             color: var(--primary-light);
         }
+
+        /* Navegação inferior entre as áreas */
+        .bottom-nav {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+            padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+            border-top: 1px solid #e3e9e3;
+            background: #fff;
+            flex-shrink: 0;
+            margin-top: 8px;
+        }
+        .nav-btn {
+            border: 0;
+            background: transparent;
+            color: #778078;
+            padding: 7px 2px 5px;
+            border-radius: 9px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            font-size: .72rem;
+            cursor: pointer;
+        }
+        .nav-btn i { font-size: 1.15rem; }
+        .nav-btn.active { color: var(--primary-color); background: #edf4ee; font-weight: 700; }
+        .page-view { display: none; flex: 1; min-height: 0; flex-direction: column; }
+        .page-view.active { display: flex; }
+        .page-heading { margin: 2px 0 12px; color: var(--primary-color); font-size: 1.1rem; }
+        .page-description { color: #687168; font-size: .85rem; margin: -6px 0 12px; }
+        .income-form { background: #f8fbf8; border: 1px solid #e2e9e2; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+        .income-form input, .income-form select { box-sizing: border-box; width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: white; font-size: .95rem; }
+        .income-form .form-group { margin-bottom: 10px; }
+        .income-list { overflow-y: auto; flex: 1; min-height: 80px; }
+        .history-list { overflow-y: auto; flex: 1; }
+        .history-row { display:flex; justify-content:space-between; gap:10px; padding:12px 10px; border-bottom:1px solid #edf0ed; }
+        .history-row strong { color:var(--primary-color); }
+        .page-scroll { overflow-y:auto; flex:1; min-height:0; }
+        .reuse-option { display:flex; align-items:flex-start; gap:8px; font-size:.88rem; color:#35513b; background:#eef5ee; border:1px solid #d4e3d5; padding:10px; border-radius:8px; margin:4px 0 10px; }
+        .reuse-option input { margin-top:3px; accent-color:var(--primary-color); }
+        @media (max-width: 420px) {
+            .header-logo { width: 76px; height: 76px; }
+            .container { padding: 10px; }
+            .summary-panel { gap: 8px; align-items:flex-start; }
+            .totals { font-size: .8rem; }
+            .totals .balanco { font-size: .9rem; }
+        }
+
     </style>
 </head>
 <body>
@@ -418,22 +468,78 @@
         </div>
     </div>
 
-    <!-- TABELA COM SCROLL INDEPENDENTE -->
-    <div class="table-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>CONTA</th>
-                    <th class="text-right">VALOR</th>
-                    <th class="text-center">VENC.</th>
-                    <th class="text-center">PAGO?</th>
-                </tr>
-            </thead>
-            <tbody id="tabela-financas-corpo">
-                <!-- Renderizado dinamicamente via Firebase -->
-            </tbody>
-        </table>
-    </div>
+    <section class="page-view active" id="pagina-inicio">
+        <div class="table-container">
+            <table>
+                <thead><tr><th>CONTA</th><th class="text-right">VALOR</th><th class="text-center">VENC.</th><th class="text-center">PAGO?</th></tr></thead>
+                <tbody id="tabela-financas-corpo"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="page-view" id="pagina-receitas">
+        <h3 class="page-heading"><i class="fa-solid fa-wallet"></i> Receitas do mês</h3>
+        <p class="page-description">Registre cada entrada e consulte o total do período selecionado.</p>
+        <div class="page-scroll">
+            <div class="income-form">
+                <div class="form-group"><label for="lancamento-receita-nome">Descrição</label><input id="lancamento-receita-nome" type="text" placeholder="Ex.: Salário, renda extra"></div>
+                <div class="form-row">
+                    <div class="form-group" style="flex:1"><label for="lancamento-receita-valor">Valor (R$)</label><input id="lancamento-receita-valor" type="number" min="0.01" step="0.01" placeholder="0,00"></div>
+                    <div class="form-group" style="flex:1"><label for="lancamento-receita-tipo">Tipo</label><select id="lancamento-receita-tipo"><option value="Fixa">Fixa</option><option value="Extra">Extra</option></select></div>
+                </div>
+                <label class="reuse-option"><input id="receita-salvar-modelo" type="checkbox" checked> Guardar também na lista para reutilizar nos próximos meses</label>
+                <button class="submit-item-btn" onclick="adicionarLancamentoReceita()"><i class="fa-solid fa-plus"></i> Registrar receita</button>
+            </div>
+            <div class="item-list-container">
+                <h4><i class="fa-solid fa-list-check"></i> Minha lista de receitas reutilizáveis</h4>
+                <p class="page-description">Os itens que você salvar aparecerão aqui. Toque em + para lançar no mês selecionado ou no lápis para editar o cadastro.</p>
+                <div id="lista-modelos-receitas-pagina"></div>
+            </div>
+            <div id="resumo-receitas-mes" style="font-weight:700;color:var(--primary-color);margin:8px 2px 12px">Total lançado: R$ 0,00</div>
+            <h4>Receitas lançadas neste mês</h4>
+            <div class="income-list" id="lista-receitas-mes"></div>
+        </div>
+    </section>
+
+    <section class="page-view" id="pagina-despesas">
+        <h3 class="page-heading"><i class="fa-solid fa-file-invoice-dollar"></i> Despesas do mês</h3>
+        <p class="page-description">Acompanhe vencimentos e pagamentos. Use o cadeado para administrar os cadastros.</p>
+        <div class="page-scroll">
+            <div class="income-form">
+                <h4 style="margin:0 0 10px">Novo lançamento de despesa</h4>
+                <div class="form-group"><label for="despesa-mes-nome">Descrição</label><input id="despesa-mes-nome" type="text" placeholder="Ex.: Compra de mercado"></div>
+                <div class="form-row">
+                    <div class="form-group" style="flex:1"><label for="despesa-mes-valor">Valor (R$)</label><input id="despesa-mes-valor" type="number" min="0.01" step="0.01" placeholder="0,00"></div>
+                    <div class="form-group" style="flex:1"><label for="despesa-mes-dia">Dia de vencimento</label><input id="despesa-mes-dia" type="number" min="1" max="31" placeholder="Dia"></div>
+                </div>
+                <label class="reuse-option"><input id="despesa-salvar-modelo" type="checkbox" checked> Guardar também na lista para reutilizar nos próximos meses</label>
+                <button class="submit-item-btn" onclick="adicionarLancamentoDespesaMes()"><i class="fa-solid fa-plus"></i> Registrar despesa</button>
+            </div>
+            <div class="item-row-card"><span>Contas deste mês</span><strong id="qtd-despesas-mes">0</strong></div>
+            <div class="item-list-container">
+                <h4><i class="fa-solid fa-list-check"></i> Minha lista de despesas reutilizáveis</h4>
+                <p class="page-description">Os itens que você salvar aparecerão aqui. Toque em + para lançar no mês selecionado ou no lápis para editar o cadastro.</p>
+                <div id="lista-modelos-despesas-pagina"></div>
+            </div>
+            <div class="table-container" style="max-height:100%">
+                <table><thead><tr><th>CONTA</th><th class="text-right">VALOR</th><th class="text-center">VENC.</th><th class="text-center">PAGO?</th></tr></thead><tbody id="tabela-despesas-secundaria"></tbody></table>
+            </div>
+        </div>
+    </section>
+
+    <section class="page-view" id="pagina-historico">
+        <h3 class="page-heading"><i class="fa-solid fa-chart-line"></i> Histórico financeiro</h3>
+        <p class="page-description">Resumo dos meses registrados no Firebase.</p>
+        <div class="form-row" style="margin-bottom:10px"><input id="historico-ano" type="number" min="2000" placeholder="Ano"><button class="submit-item-btn" style="width:auto;padding:10px 14px" onclick="carregarHistorico()"><i class="fa-solid fa-magnifying-glass"></i> Ver</button></div>
+        <div class="history-list" id="lista-historico"></div>
+    </section>
+
+    <nav class="bottom-nav" aria-label="Navegação principal">
+        <button class="nav-btn active" data-page="inicio" onclick="trocarPagina('inicio',this)"><i class="fa-solid fa-house"></i><span>Início</span></button>
+        <button class="nav-btn" data-page="receitas" onclick="trocarPagina('receitas',this)"><i class="fa-solid fa-wallet"></i><span>Receitas</span></button>
+        <button class="nav-btn" data-page="despesas" onclick="trocarPagina('despesas',this)"><i class="fa-solid fa-file-invoice-dollar"></i><span>Despesas</span></button>
+        <button class="nav-btn" data-page="historico" onclick="trocarPagina('historico',this)"><i class="fa-solid fa-chart-column"></i><span>Histórico</span></button>
+    </nav>
 </div>
 
 <!-- Modal para Filtrar Mês e Ano -->
@@ -474,6 +580,32 @@
     </div>
 </div>
 
+<!-- Modal para editar um lançamento de receita do mês -->
+<div id="modal-editar-lancamento-receita" class="modal modal-edit">
+    <div class="modal-content">
+        <div class="modal-header-custom"><h3><i class="fa-solid fa-pen-to-square"></i> Editar receita do mês</h3><button class="close-btn" onclick="closeModal('modal-editar-lancamento-receita')"><i class="fa-solid fa-xmark"></i></button></div>
+        <input type="hidden" id="edit-lancamento-receita-id">
+        <div class="form-group"><label for="edit-lancamento-receita-nome">Descrição</label><input id="edit-lancamento-receita-nome" type="text"></div>
+        <div class="form-group"><label for="edit-lancamento-receita-valor">Valor (R$)</label><input id="edit-lancamento-receita-valor" type="number" min="0.01" step="0.01"></div>
+        <div class="form-group"><label for="edit-lancamento-receita-tipo">Tipo</label><select id="edit-lancamento-receita-tipo"><option value="Fixa">Fixa</option><option value="Extra">Extra</option></select></div>
+        <button class="submit-item-btn" onclick="salvarEdicaoLancamentoReceita()"><i class="fa-solid fa-check"></i> Salvar alterações</button>
+        <button class="delete-item-btn" onclick="excluirLancamentoReceitaAtual()"><i class="fa-solid fa-trash-can"></i> Excluir lançamento</button>
+    </div>
+</div>
+
+<!-- Modal para editar cadastro-modelo de despesa -->
+<div id="modal-editar-modelo-despesa" class="modal modal-edit">
+    <div class="modal-content">
+        <div class="modal-header-custom"><h3><i class="fa-solid fa-pen-to-square"></i> Editar cadastro de despesa</h3><button class="close-btn" onclick="closeModal('modal-editar-modelo-despesa')"><i class="fa-solid fa-xmark"></i></button></div>
+        <input type="hidden" id="edit-modelo-despesa-id">
+        <div class="form-group"><label for="edit-modelo-despesa-nome">Nome</label><input id="edit-modelo-despesa-nome" type="text"></div>
+        <div class="form-group"><label for="edit-modelo-despesa-valor">Valor (R$)</label><input id="edit-modelo-despesa-valor" type="number" min="0.01" step="0.01"></div>
+        <div class="form-group"><label for="edit-modelo-despesa-dia">Dia de vencimento</label><input id="edit-modelo-despesa-dia" type="number" min="1" max="31"></div>
+        <button class="submit-item-btn" onclick="salvarEdicaoModeloDespesa()"><i class="fa-solid fa-check"></i> Salvar alterações</button>
+        <button class="delete-item-btn" onclick="excluirModeloDespesa()"><i class="fa-solid fa-trash-can"></i> Excluir cadastro</button>
+    </div>
+</div>
+
 <!-- Modal para Editar/Excluir Despesa da Tela Inicial -->
 <div id="modal-editar-despesa" class="modal modal-edit">
     <div class="modal-content">
@@ -483,7 +615,7 @@
         </div>
         <input type="hidden" id="edit-id">
         <div class="form-group">
-            <label id="edit-nome-label" style="font-size: 1rem; color: var(--primary-color); font-weight: bold; margin-bottom: 10px;"></label>
+            <label for="edit-nome" style="font-size: 1rem; color: var(--primary-color); font-weight: bold; margin-bottom: 10px;">Nome da despesa</label><input id="edit-nome" type="text" placeholder="Nome da despesa">
         </div>
         <div class="form-group">
             <label>Novo Valor (R$)</label>
@@ -624,10 +756,12 @@
     let despesasTelaInicial = [];
     let despesasCadastradas = [];
     let receitasCadastradas = [];
+    let receitasLancadasMes = [];
     let listenerAtual = null;
 
     window.onload = function() {
         atualizarCabecalhoMes();
+        document.getElementById('historico-ano').value = dataCorrenteReal.getFullYear();
         ouvirDadosFirebase();
     };
 
@@ -697,6 +831,7 @@
 
         db.ref('financas/despesas_cadastradas').off();
         db.ref('financas/receitas_cadastradas').off();
+        db.ref(`${caminhoVisualizacao}/receitas_lancadas`).off();
         if (listenerAtual) {
             db.ref(listenerAtual).off();
         }
@@ -717,6 +852,14 @@
         // Escutar Total de Receitas do Mês em Visualização
         db.ref(`${caminhoVisualizacao}/total_receitas`).on('value', (snapshot) => {
             totalReceitas = snapshot.val() || 0;
+            atualizarTotaisTela();
+        });
+
+        db.ref(`${caminhoVisualizacao}/receitas_lancadas`).on('value', (snapshot) => {
+            const data = snapshot.val();
+            receitasLancadasMes = [];
+            if (data) Object.keys(data).forEach(key => receitasLancadasMes.push({ id: key, ...data[key] }));
+            renderizarReceitasLancadas();
             atualizarTotaisTela();
         });
 
@@ -754,9 +897,10 @@
 
     function atualizarTotaisTela() {
         let totalDespesas = calcularTotalDespesas();
-        let balanco = totalReceitas - totalDespesas;
+        const receitasDoMes = totalReceitas + calcularTotalReceitasLancadas();
+        let balanco = receitasDoMes - totalDespesas;
         
-        document.getElementById('total-receitas-display').textContent = `Receitas: ${formatarMoeda(totalReceitas)}`;
+        document.getElementById('total-receitas-display').textContent = `Receitas: ${formatarMoeda(receitasDoMes)}`;
         document.getElementById('total-despesas-display').textContent = `Despesas: ${formatarMoeda(totalDespesas)}`;
         
         const balancoEl = document.getElementById('total-balanco-display');
@@ -807,6 +951,8 @@
             tbody.appendChild(tr);
         });
 
+        document.getElementById('qtd-despesas-mes').textContent = despesasTelaInicial.length;
+        document.getElementById('tabela-despesas-secundaria').innerHTML = tbody.innerHTML;
         atualizarTotaisTela();
     }
 
@@ -821,7 +967,7 @@
         if (!item) return;
 
         document.getElementById('edit-id').value = item.id;
-        document.getElementById('edit-nome-label').textContent = `Conta: ${item.nome}`;
+        document.getElementById('edit-nome').value = item.nome || ''; 
         document.getElementById('edit-valor').value = item.valor;
         document.getElementById('edit-dia').value = parseInt(item.dia, 10);
         openModal('modal-editar-despesa');
@@ -830,15 +976,17 @@
     function salvarEdicaoDespesa() {
         const caminhoVisualizacao = obterCaminhoVisualizacao();
         const id = document.getElementById('edit-id').value;
+        const novoNome = document.getElementById('edit-nome').value.trim().toUpperCase();
         const novoValor = parseFloat(document.getElementById('edit-valor').value);
         const novoDia = document.getElementById('edit-dia').value.trim();
 
-        if (isNaN(novoValor) || !novoDia) {
+        if (!novoNome || !Number.isFinite(novoValor) || novoValor <= 0 || !novoDia || Number(novoDia) < 1 || Number(novoDia) > 31) {
             alert('Preencha os campos corretamente.');
             return;
         }
 
         db.ref(`${caminhoVisualizacao}/despesas_tela_inicial/${id}`).update({
+            nome: novoNome,
             valor: novoValor,
             dia: novoDia.padStart(2, '0')
         }, () => {
@@ -871,49 +1019,270 @@
         openModal('modal-receitas');
     }
 
-    function renderizarListaDespesasCadastradas() {
-        const containerLista = document.getElementById('lista-despesas-cadastradas');
-        containerLista.innerHTML = '';
+    function salvarModeloDespesa(nome, valor, dia) {
+        return db.ref('financas/despesas_cadastradas').once('value').then(snapshot => {
+            const dados = snapshot.val() || {};
+            const existente = Object.entries(dados).find(([, item]) => (item.nome || '').trim().toUpperCase() === nome);
+            const registro = { nome, valor, dia:String(dia).padStart(2,'0') };
+            if (existente) return db.ref(`financas/despesas_cadastradas/${existente[0]}`).update(registro);
+            return db.ref('financas/despesas_cadastradas').push(registro);
+        });
+    }
 
-        despesasCadastradas.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'item-row-card';
-            div.innerHTML = `
-                <span>${item.nome}</span>
-                <div>
-                    <span class="item-details" style="margin-right: 8px;">R$ ${item.valor.toFixed(2).replace('.', ',')} (Dia ${item.dia})</span>
-                    <button class="action-icon-btn" title="Adicionar à Tela Inicial do Mês Corrente" onclick="enviarDespesaParaTelaCorrente('${item.nome}', ${item.valor}, '${item.dia}')"><i class="fa-solid fa-arrow-up-from-bracket"></i></button>
-                </div>
-            `;
-            containerLista.appendChild(div);
+    function adicionarLancamentoDespesaMes() {
+        const nome = document.getElementById('despesa-mes-nome').value.trim().toUpperCase();
+        const valor = Number(document.getElementById('despesa-mes-valor').value);
+        const dia = Number(document.getElementById('despesa-mes-dia').value);
+        const salvarModelo = document.getElementById('despesa-salvar-modelo').checked;
+        if (!nome || !Number.isFinite(valor) || valor <= 0 || !Number.isInteger(dia) || dia < 1 || dia > 31) {
+            alert('Informe a descrição, um valor maior que zero e um dia entre 1 e 31.'); return;
+        }
+        db.ref(`${obterCaminhoVisualizacao()}/despesas_tela_inicial`).push({ nome, valor, dia:String(dia).padStart(2,'0'), status:'🔄' }, async error => {
+            if (error) { alert('Não foi possível registrar a despesa.'); return; }
+            try {
+                if (salvarModelo) await salvarModeloDespesa(nome, valor, dia);
+                document.getElementById('despesa-mes-nome').value='';
+                document.getElementById('despesa-mes-valor').value='';
+                document.getElementById('despesa-mes-dia').value='';
+                alert(salvarModelo ? 'Despesa registrada e salva na lista reutilizável!' : 'Despesa registrada no mês!');
+            } catch (e) { alert('A despesa foi lançada no mês, mas não foi possível salvar o cadastro reutilizável.'); }
+        });
+    }
+
+    function renderizarListaDespesasCadastradas() {
+        const containers = [document.getElementById('lista-despesas-cadastradas'), document.getElementById('lista-modelos-despesas-pagina')].filter(Boolean);
+        containers.forEach(containerLista => {
+            containerLista.innerHTML = '';
+            despesasCadastradas.forEach(item => {
+                const div = document.createElement('div'); div.className = 'item-row-card';
+                const info = document.createElement('div');
+                const nome = document.createElement('strong'); nome.textContent = item.nome || 'Despesa';
+                const detalhe = document.createElement('div'); detalhe.className = 'item-details'; detalhe.textContent = `${formatarMoeda(Number(item.valor)||0)} · Vencimento dia ${item.dia || '--'}`;
+                info.append(nome, detalhe);
+                const acoes = document.createElement('div'); acoes.style.display='flex'; acoes.style.alignItems='center'; acoes.style.gap='5px';
+                const add = document.createElement('button'); add.className='action-icon-btn'; add.title='Adicionar ao mês selecionado'; add.innerHTML='<i class="fa-solid fa-plus-circle"></i>'; add.onclick=()=>enviarModeloDespesaParaMes(item.id);
+                const edit = document.createElement('button'); edit.className='action-icon-btn'; edit.title='Editar cadastro'; edit.innerHTML='<i class="fa-solid fa-pen"></i>'; edit.onclick=()=>abrirEdicaoModeloDespesa(item.id);
+                acoes.append(add,edit); div.append(info,acoes); containerLista.appendChild(div);
+            });
+            if (!despesasCadastradas.length) containerLista.innerHTML='<p class="page-description">Nenhuma despesa cadastrada ainda. Use Gerenciar Despesas para criar sua lista.</p>';
         });
     }
 
     function renderizarListaReceitasCadastradas() {
-        const containerLista = document.getElementById('lista-receitas-cadastradas');
-        containerLista.innerHTML = '';
-
-        const caminhoCorrente = obterCaminhoCorrente();
-
-        receitasCadastradas.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'item-row-card';
-            
-            const adicionadaNoCorrente = item.meses_adicionados && item.meses_adicionados[caminhoCorrente];
-            const iconeStatus = adicionadaNoCorrente 
-                ? '<i class="fa-solid fa-circle-check status-clickable" style="color: #2c5e3b;" title="Já adicionada no mês corrente. Clique para retirar" onclick="toggleReceitaMontanteCorrente(\'' + item.id + '\', ' + item.valor + ', true)"></i>' 
-                : '<i class="fa-solid fa-circle status-clickable" style="color: #ccc; font-size: 0.7rem;" title="Pendente. Clique para adicionar ao mês corrente" onclick="toggleReceitaMontanteCorrente(\'' + item.id + '\', ' + item.valor + ', false)"></i>';
-
-            div.innerHTML = `
-                <span class="conta-clickable" onclick="abrirEdicaoReceita('${item.id}')">${item.nome}</span>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="display: flex; align-items: center;">${iconeStatus}</span>
-                    <span class="item-details">R$ ${item.valor.toFixed(2).replace('.', ',')}</span>
-                    <button class="action-icon-btn" title="${adicionadaNoCorrente ? 'Retirar do Mês Corrente' : 'Adicionar ao Mês Corrente'}" onclick="toggleReceitaMontanteCorrente('${item.id}', ${item.valor}, ${!!adicionadaNoCorrente})"><i class="fa-solid ${adicionadaNoCorrente ? 'fa-minus-circle' : 'fa-plus-circle'}"></i></button>
-                </div>
-            `;
-            containerLista.appendChild(div);
+        const containers = [document.getElementById('lista-receitas-cadastradas'), document.getElementById('lista-modelos-receitas-pagina')].filter(Boolean);
+        containers.forEach(containerLista => {
+            containerLista.innerHTML = '';
+            receitasCadastradas.forEach(item => {
+                const div = document.createElement('div'); div.className='item-row-card';
+                const info = document.createElement('div');
+                const nome = document.createElement('strong'); nome.textContent=item.nome || 'Receita';
+                const detalhe = document.createElement('div'); detalhe.className='item-details'; detalhe.textContent=formatarMoeda(Number(item.valor)||0);
+                info.append(nome,detalhe);
+                const acoes=document.createElement('div'); acoes.style.display='flex'; acoes.style.alignItems='center'; acoes.style.gap='5px';
+                const add=document.createElement('button'); add.className='action-icon-btn'; add.title='Adicionar ao mês selecionado'; add.innerHTML='<i class="fa-solid fa-plus-circle"></i>'; add.onclick=()=>adicionarReceitaModeloAoMes(item.id);
+                const edit=document.createElement('button'); edit.className='action-icon-btn'; edit.title='Editar cadastro'; edit.innerHTML='<i class="fa-solid fa-pen"></i>'; edit.onclick=()=>abrirEdicaoReceita(item.id);
+                acoes.append(add,edit); div.append(info,acoes); containerLista.appendChild(div);
+            });
+            if (!receitasCadastradas.length) containerLista.innerHTML='<p class="page-description">Nenhuma receita cadastrada ainda. Use Gerenciar Receitas para criar sua lista.</p>';
         });
+    }
+
+    function enviarModeloDespesaParaMes(id) {
+        const modelo = despesasCadastradas.find(item => item.id === id);
+        if (!modelo) return;
+        const caminho = obterCaminhoVisualizacao();
+        db.ref(`${caminho}/despesas_tela_inicial`).once('value', snapshot => {
+            const existentes = snapshot.val() || {};
+            if (Object.values(existentes).some(item => item.modeloId === id)) { alert('Esta despesa já foi adicionada ao mês selecionado.'); return; }
+            db.ref(`${caminho}/despesas_tela_inicial`).push({ nome:modelo.nome, valor:Number(modelo.valor)||0, dia:String(modelo.dia||'1').padStart(2,'0'), status:'🔄', modeloId:id }, error => {
+                if (error) alert('Não foi possível adicionar a despesa ao mês.');
+            });
+        });
+    }
+
+    function adicionarReceitaModeloAoMes(id) {
+        const modelo = receitasCadastradas.find(item => item.id === id);
+        if (!modelo) return;
+        const caminho = obterCaminhoVisualizacao();
+        db.ref(`${caminho}/receitas_lancadas`).once('value', snapshot => {
+            const existentes = snapshot.val() || {};
+            if (Object.values(existentes).some(item => item.modeloId === id)) { alert('Esta receita já foi adicionada ao mês selecionado.'); return; }
+            db.ref(`${caminho}/receitas_lancadas`).push({ nome:modelo.nome, valor:Number(modelo.valor)||0, tipo:'Fixa', modeloId:id, criadoEm:new Date().toISOString() }, error => {
+                if (error) alert('Não foi possível adicionar a receita ao mês.');
+            });
+        });
+    }
+
+    function abrirEdicaoModeloDespesa(id) {
+        const item=despesasCadastradas.find(x=>x.id===id); if(!item) return;
+        document.getElementById('edit-modelo-despesa-id').value=id;
+        document.getElementById('edit-modelo-despesa-nome').value=item.nome||'';
+        document.getElementById('edit-modelo-despesa-valor').value=Number(item.valor)||'';
+        document.getElementById('edit-modelo-despesa-dia').value=parseInt(item.dia,10)||1;
+        openModal('modal-editar-modelo-despesa');
+    }
+
+    function salvarEdicaoModeloDespesa() {
+        const id=document.getElementById('edit-modelo-despesa-id').value;
+        const nome=document.getElementById('edit-modelo-despesa-nome').value.trim().toUpperCase();
+        const valor=Number(document.getElementById('edit-modelo-despesa-valor').value);
+        const dia=Number(document.getElementById('edit-modelo-despesa-dia').value);
+        if(!nome || !Number.isFinite(valor) || valor<=0 || !Number.isInteger(dia) || dia<1 || dia>31) { alert('Confira nome, valor e dia de vencimento.'); return; }
+        db.ref(`financas/despesas_cadastradas/${id}`).update({nome,valor,dia:String(dia).padStart(2,'0')}, error=>{
+            if(error){alert('Não foi possível atualizar o cadastro.');return;}
+            closeModal('modal-editar-modelo-despesa');
+        });
+    }
+
+    function excluirModeloDespesa() {
+        const id=document.getElementById('edit-modelo-despesa-id').value;
+        const item=despesasCadastradas.find(x=>x.id===id);
+        if(!item || !confirm(`Excluir o cadastro "${item.nome}"? Os lançamentos já feitos nos meses não serão apagados.`)) return;
+        db.ref(`financas/despesas_cadastradas/${id}`).remove(error=>{
+            if(error){alert('Não foi possível excluir o cadastro.');return;}
+            closeModal('modal-editar-modelo-despesa');
+        });
+    }
+
+
+    function trocarPagina(pagina, botao) {
+        document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+        const alvo = document.getElementById('pagina-' + pagina);
+        if (alvo) alvo.classList.add('active');
+        document.querySelectorAll('.nav-btn').forEach(el => el.classList.toggle('active', el.dataset.page === pagina));
+        if (pagina === 'historico') carregarHistorico();
+        if (pagina === 'receitas') renderizarReceitasLancadas();
+    }
+
+    function calcularTotalReceitasLancadas() {
+        return receitasLancadasMes.reduce((total, item) => total + (Number(item.valor) || 0), 0);
+    }
+
+    function renderizarReceitasLancadas() {
+        const lista = document.getElementById('lista-receitas-mes');
+        if (!lista) return;
+        lista.innerHTML = '';
+        receitasLancadasMes.sort((a,b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+        receitasLancadasMes.forEach(item => {
+            const linha = document.createElement('div');
+            linha.className = 'item-row-card';
+            const info = document.createElement('div');
+            const nome = document.createElement('strong');
+            nome.textContent = item.nome || 'Receita';
+            const detalhe = document.createElement('div');
+            detalhe.className = 'item-details';
+            detalhe.textContent = item.tipo || 'Extra';
+            info.append(nome, detalhe);
+            const lado = document.createElement('div');
+            lado.style.display = 'flex'; lado.style.alignItems = 'center'; lado.style.gap = '8px';
+            const valor = document.createElement('span');
+            valor.textContent = formatarMoeda(Number(item.valor) || 0);
+            const editar = document.createElement('button');
+            editar.className = 'action-icon-btn'; editar.title = 'Editar lançamento';
+            editar.innerHTML = '<i class="fa-solid fa-pen"></i>';
+            editar.onclick = () => abrirEdicaoLancamentoReceita(item.id);
+            lado.append(valor, editar); linha.append(info, lado); lista.appendChild(linha);
+        });
+        document.getElementById('resumo-receitas-mes').textContent = 'Total lançado: ' + formatarMoeda(calcularTotalReceitasLancadas());
+        atualizarTotaisTela();
+    }
+
+    function salvarModeloReceita(nome, valor, tipo) {
+        return db.ref('financas/receitas_cadastradas').once('value').then(snapshot => {
+            const dados = snapshot.val() || {};
+            const existente = Object.entries(dados).find(([, item]) => (item.nome || '').trim().toLowerCase() === nome.trim().toLowerCase());
+            const registro = { nome, valor, tipo };
+            if (existente) return db.ref(`financas/receitas_cadastradas/${existente[0]}`).update(registro);
+            return db.ref('financas/receitas_cadastradas').push(registro);
+        });
+    }
+
+    function adicionarLancamentoReceita() {
+        const nome = document.getElementById('lancamento-receita-nome').value.trim();
+        const valor = Number(document.getElementById('lancamento-receita-valor').value);
+        const tipo = document.getElementById('lancamento-receita-tipo').value;
+        const salvarModelo = document.getElementById('receita-salvar-modelo').checked;
+        if (!nome || !Number.isFinite(valor) || valor <= 0) {
+            alert('Informe a descrição e um valor maior que zero.');
+            return;
+        }
+        db.ref(`${obterCaminhoVisualizacao()}/receitas_lancadas`).push({
+            nome: nome, valor: valor, tipo: tipo, criadoEm: new Date().toISOString()
+        }, async error => {
+            if (error) { alert('Não foi possível registrar a receita.'); return; }
+            try {
+                if (salvarModelo) await salvarModeloReceita(nome, valor, tipo);
+                document.getElementById('lancamento-receita-nome').value = '';
+                document.getElementById('lancamento-receita-valor').value = '';
+                alert(salvarModelo ? 'Receita registrada e salva na lista reutilizável!' : 'Receita registrada no mês selecionado!');
+            } catch (e) { alert('A receita foi lançada no mês, mas não foi possível salvar o cadastro reutilizável.'); }
+        });
+    }
+
+    function abrirEdicaoLancamentoReceita(id) {
+        const item = receitasLancadasMes.find(r => r.id === id);
+        if (!item) return;
+        document.getElementById('edit-lancamento-receita-id').value = id;
+        document.getElementById('edit-lancamento-receita-nome').value = item.nome || '';
+        document.getElementById('edit-lancamento-receita-valor').value = Number(item.valor) || '';
+        document.getElementById('edit-lancamento-receita-tipo').value = item.tipo || 'Extra';
+        openModal('modal-editar-lancamento-receita');
+    }
+
+    function salvarEdicaoLancamentoReceita() {
+        const id = document.getElementById('edit-lancamento-receita-id').value;
+        const nome = document.getElementById('edit-lancamento-receita-nome').value.trim();
+        const valor = Number(document.getElementById('edit-lancamento-receita-valor').value);
+        const tipo = document.getElementById('edit-lancamento-receita-tipo').value;
+        if (!nome || !Number.isFinite(valor) || valor <= 0) { alert('Informe uma descrição e um valor maior que zero.'); return; }
+        db.ref(`${obterCaminhoVisualizacao()}/receitas_lancadas/${id}`).update({ nome, valor, tipo }, error => {
+            if (error) { alert('Não foi possível atualizar a receita.'); return; }
+            closeModal('modal-editar-lancamento-receita');
+        });
+    }
+
+    function excluirLancamentoReceitaAtual() {
+        const id = document.getElementById('edit-lancamento-receita-id').value;
+        const item = receitasLancadasMes.find(r => r.id === id);
+        if (!item || !confirm(`Excluir a receita "${item.nome || ''}" deste mês?`)) return;
+        db.ref(`${obterCaminhoVisualizacao()}/receitas_lancadas/${id}`).remove(error => {
+            if (error) { alert('Não foi possível excluir a receita.'); return; }
+            closeModal('modal-editar-lancamento-receita');
+        });
+    }
+
+    function carregarHistorico() {
+        const ano = parseInt(document.getElementById('historico-ano').value || dataAtualVisualizacao.getFullYear(), 10);
+        if (!Number.isInteger(ano) || ano < 2000) { alert('Informe um ano válido.'); return; }
+        document.getElementById('historico-ano').value = ano;
+        const lista = document.getElementById('lista-historico');
+        lista.innerHTML = '<p style="color:#777">Carregando histórico...</p>';
+        db.ref('financas/meses').once('value', snapshot => {
+            const dados = snapshot.val() || {};
+            const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            lista.innerHTML = '';
+            let encontrou = false;
+            for (let m = 1; m <= 12; m++) {
+                const chave = `${ano}_${String(m).padStart(2,'0')}`;
+                const dadosMes = dados[chave];
+                if (!dadosMes) continue;
+                encontrou = true;
+                const despesas = dadosMes.despesas_tela_inicial || {};
+                const totalDespesas = Object.values(despesas).reduce((s, item) => s + (Number(item.valor) || 0), 0);
+                const receitasNovas = dadosMes.receitas_lancadas || {};
+                const totalReceitasNovas = Object.values(receitasNovas).reduce((s, item) => s + (Number(item.valor) || 0), 0);
+                const receitas = (Number(dadosMes.total_receitas) || 0) + totalReceitasNovas;
+                const linha = document.createElement('div'); linha.className = 'history-row';
+                const esquerda = document.createElement('div');
+                const titulo = document.createElement('strong'); titulo.textContent = nomesMeses[m-1];
+                const detalhe = document.createElement('div'); detalhe.className = 'item-details'; detalhe.textContent = `Receitas: ${formatarMoeda(receitas)} · Despesas: ${formatarMoeda(totalDespesas)}`;
+                esquerda.append(titulo, detalhe);
+                const saldo = document.createElement('strong'); saldo.textContent = formatarMoeda(receitas-totalDespesas);
+                saldo.style.color = receitas-totalDespesas < 0 ? '#a82020' : 'var(--primary-color)';
+                linha.append(esquerda, saldo); lista.appendChild(linha);
+            }
+            if (!encontrou) lista.innerHTML = '<p style="color:#777;padding:8px">Nenhum registro encontrado para este ano.</p>';
+        }, error => { lista.innerHTML = '<p style="color:#a82020">Erro ao carregar o histórico.</p>'; });
     }
 
     function adicionarDespesa() {
